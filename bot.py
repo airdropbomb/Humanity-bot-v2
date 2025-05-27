@@ -35,7 +35,7 @@ def load_file_lines(filepath):
         return [line.strip() for line in f if line.strip()]
 
 if not os.path.exists(TOKEN_FILE):
-    console.print("[bold red]❌ File tokens.txt tidak ditemukan![/bold red]")
+    console.print("[bold red]❌ File tokens.txt not found![/bold red]")
     sys.exit(1)
 
 TOKENS = load_file_lines(TOKEN_FILE)
@@ -45,7 +45,7 @@ def log_error(message):
 
 def show_banner():
     banner_text = Text("Auto Claim Humanity Protocol 🚀", style="bold cyan", justify="center")
-    panel = Panel(banner_text, expand=False, border_style="cyan", title="Start", subtitle="SHARE IT HUB")
+    panel = Panel(banner_text, expand=False, border_style="cyan", title="Start", subtitle="ADB NODE")
     console.print(panel)
 
 def call(endpoint, token, method="POST", body=None):
@@ -68,61 +68,61 @@ def call(endpoint, token, method="POST", body=None):
         try:
             response_data = resp.json()
         except json.JSONDecodeError as e:
-            raise Exception(f"Diterima data bukan JSON: {str(e)}")
+            raise Exception(f"Received data is not JSON: {str(e)}")
 
         if not resp.ok:
-            message = response_data.get("message", "Kesalahan tidak diketahui")
+            message = response_data.get("message", "Unknown error")
             raise Exception(f"{resp.status_code} {resp.reason}: {message}")
 
         return response_data
 
     except Exception as e:
-        raise Exception(f"Permintaan gagal ({endpoint}): {str(e)}")
+        raise Exception(f"Request failed ({endpoint}): {str(e)}")
 
 def process_token(token, index):
-    console.rule(f"[cyan]🔹 Memulai Token #{index + 1}")
+    console.rule(f"[cyan]🔹 Starting Token #{index + 1}")
     try:
         user_info = call("/api/user/userInfo", token)
         user_data = user_info.get("data", {})
         table = Table(show_header=True, header_style="bold magenta")
-        table.add_column("Informasi", style="cyan")
-        table.add_column("Nilai", style="white")
+        table.add_column("Information", style="cyan")
+        table.add_column("Value", style="white")
         table.add_row("✅ Nickname", user_data.get("nickName", "Unknown"))
         table.add_row("✅ Wallet", user_data.get("ethAddress", "Unknown"))
         console.print(table)
 
         balance = call("/api/rewards/balance", token, method="GET")
-        console.print(f"[yellow]💰 Point HP :[/yellow] {balance.get('balance', {}).get('total_rewards', 0)}")
+        console.print(f"[yellow]💰 HP Points:[/yellow] {balance.get('balance', {}).get('total_rewards', 0)}")
 
         reward_status = call("/api/rewards/daily/check", token)
         console.print(f"[blue]📊 Status:[/blue] {reward_status.get('message', '-')}")
 
         if not reward_status.get("available", False):
-            console.print("[orange1]⏳ Done claim, skip[/orange1]")
+            console.print("[orange1]⏳ Claim completed, skipping[/orange1]")
             return
 
         claim = call("/api/rewards/daily/claim", token)
         claim_data = claim.get("data", {})
         if claim_data and claim_data.get("amount"):
-            console.print(f"[green]🎉 Klaim berhasil, HP Point: {claim_data['amount']}[/green]")
+            console.print(f"[green]🎉 Claim successful, HP Points: {claim_data['amount']}[/green]")
         elif claim.get("message") and "successfully claimed" in claim.get("message", ""):
-            console.print("[green]🎉 Anda telah berhasil mengklaim HP Point hari ini.[/green]")
+            console.print("[green]🎉 You have successfully claimed HP Points today.[/green]")
         else:
-            console.print(f"[red]❌ Klaim gagal, data tidak sesuai: {claim}[/red]")
+            console.print(f"[red]❌ Claim failed, data mismatch: {claim}[/red]")
             return
 
         updated_balance = call("/api/rewards/balance", token, method="GET")
         if updated_balance.get("balance"):
-            console.print(f"[green]💰 HP Point setelah klaim:[/green] {updated_balance['balance']['total_rewards']}")
+            console.print(f"[green]💰 HP Points after claim:[/green] {updated_balance['balance']['total_rewards']}")
         else:
-            console.print(f"[red]❌ Gagal memperbarui HP Point: {updated_balance}[/red]")
+            console.print(f"[red]❌ Failed to update HP Points: {updated_balance}[/red]")
 
     except Exception as err:
         console.print(f"[bold red]❌ Error: {err}[/bold red]")
-        log_error(f"Token #{index + 1} gagal: {err}")
+        log_error(f"Token #{index + 1} failed: {err}")
 
     delay = random.randint(15000, 20000) / 1000
-    console.print(f"[yellow]⏳ Menunggu {delay:.2f} detik sebelum lanjut...[/yellow]")
+    console.print(f"[yellow]⏳ Waiting {delay:.2f} seconds before continuing...[/yellow]")
     time.sleep(delay)
 
 def countdown(seconds, on_finish):
@@ -132,20 +132,20 @@ def countdown(seconds, on_finish):
                 hours, rem = divmod(seconds, 3600)
                 minutes, secs = divmod(rem, 60)
                 time_str = f"{hours:02d}:{minutes:02d}:{secs:02d}"
-                live.update(Text(f"⏳ Menunggu {time_str} untuk claim selanjutnya", style="bold yellow"))
+                live.update(Text(f"⏳ Waiting {time_str} for the next claim", style="bold yellow"))
                 time.sleep(1)
                 seconds -= 1
-        console.print("[bold green]\n⏳ Countdown selesai, memulai putaran baru...[/bold green]")
+        console.print("[bold green]\n⏳ Countdown finished, starting new round...[/bold green]")
         on_finish()
     except KeyboardInterrupt:
-        console.print("\n[bold red]🛑 Program dihentikan oleh pengguna.[/bold red]")
+        console.print("\n[bold red]🛑 Program stopped by user.[/bold red]")
         sys.exit(0)
 
 def start_round():
-    console.print(f"\n[bold green]🚀 Accounts total : {len(TOKENS)} akun...[/bold green]")
+    console.print(f"\n[bold green]🚀 Total accounts: {len(TOKENS)} accounts...[/bold green]")
     for i, token in enumerate(TOKENS):
         process_token(token, i)
-    console.print("[bold green]✅ Claim done, next claim waiting 24 hours...[/bold green]")
+    console.print("[bold green]✅ Claim completed, waiting 24 hours for next claim...[/bold green]")
     countdown(24 * 60 * 60, start_round)
 
 def batch_run():
